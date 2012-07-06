@@ -39,47 +39,8 @@ under the License.
   <properties>
     <osgi.import>
       !org.apache.directmemory*,
-      com.google.common.collect;version="[9.0,11)",
-      com.google.common.base;version="[9.0,11)",
-      org.aspectj*;version="[1.6,2)",
-      org.slf4j*
     </osgi.import>
     <osgi.export>org.apache.directmemory*;version="${project.version}</osgi.export>
   </properties>
-
-  <dependencies>
-    <dependency>
-      <groupId>org.slf4j</groupId>
-      <artifactId>slf4j-api</artifactId>
-    </dependency>
-    <dependency>
-      <groupId>com.google.guava</groupId>
-      <artifactId>guava</artifactId>
-    </dependency>
-    <!--dependency>
-      <groupId>org.aspectj</groupId>
-      <artifactId>aspectjrt</artifactId>
-    </dependency-->
-    <!--dependency>
-      <groupId>com.carrotsearch</groupId>
-      <artifactId>junit-benchmarks</artifactId>
-      <scope>test</scope>
-    </dependency-->
-    <dependency>
-      <groupId>junit</groupId>
-      <artifactId>junit</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <!--dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-core</artifactId>
-      <scope>test</scope>
-    </dependency>
-    <dependency>
-      <groupId>ch.qos.logback</groupId>
-      <artifactId>logback-classic</artifactId>
-      <scope>test</scope>
-    </dependency-->
-  </dependencies>
 
 </project>

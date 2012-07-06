@@ -27,12 +27,9 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.directmemory.memory.allocator.DirectByteBufferUtils;
 import org.apache.directmemory.stream.ByteBufferStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkState;
 
@@ -40,19 +37,16 @@ import static com.google.common.base.Preconditions.checkState;
  * {@link PoolableByteBuffersFactory} implementation that instantiate {@link ByteBuffer}s. 
  * Allocation algorithm is based on Knuth's bubby allocation scheme. 
  *
- * @author bperroud
- * 
  * @since 0.2
  */
 public class MergingBubbyPoolableByteBuffersFactory
+    extends AbstractPoolableByteBuffersFactory
     implements PoolableByteBuffersFactory
 {
 
     private static final long MAX_SEGMENT_SIZE = Integer.MAX_VALUE / 2;
 
     private static final int DEFAULT_MIN_ALLOCATION_SIZE = 128;
-
-    protected final Logger logger = LoggerFactory.getLogger( this.getClass() );
 
     // Collection that keeps track of the parent buffers (segments) where slices are allocated
     private final List<ByteBuffer> segmentsBuffers;
@@ -71,9 +65,13 @@ public class MergingBubbyPoolableByteBuffersFactory
 
     private final Map<Integer, LinkedByteBuffer> borrowedBuffers = new ConcurrentHashMap<Integer, LinkedByteBuffer>();
 
-    
-    private final AtomicBoolean closed = new AtomicBoolean( false );
 
+    /**
+     * Constructor.
+     *
+     * @param totalSize         : the total  to allocate
+     * @param numberOfSegments  : number of parent {@link ByteBuffer} to allocate.
+     */
     public MergingBubbyPoolableByteBuffersFactory( final long totalSize, final int numberOfSegments )
     {
         this( totalSize, numberOfSegments, DEFAULT_MIN_ALLOCATION_SIZE );
@@ -82,12 +80,11 @@ public class MergingBubbyPoolableByteBuffersFactory
     /**
      * Constructor.
      *
-     * @param number           : internal identifier of the allocator
-     * @param totalSize        : the internal buffer
-     * @param sliceSize        : arbitrary number of the buffer.
-     * @param numberOfSegments : number of parent {@link ByteBuffer} to allocate.
+     * @param totalSize         : the total  to allocate
+     * @param numberOfSegments  : number of parent {@link ByteBuffer} to allocate.
+     * @param minAllocationSize : minimal size to allocate.  Allocation request for smaller size will not split the {@link ByteBuffer}.
      */
-    public MergingBubbyPoolableByteBuffersFactory( final long totalSize, int numberOfSegments, final int minAllocationSize )
+	public MergingBubbyPoolableByteBuffersFactory( final long totalSize, int numberOfSegments, final int minAllocationSize )
     {
 
         this.minAllocationSize = minAllocationSize;
@@ -140,16 +137,6 @@ public class MergingBubbyPoolableByteBuffersFactory
     private static int maxExponantOf2(int i ) {
         return (int)Math.floor( Math.log( i ) / Math.log( 2 ) );
     }
-    
-    protected final boolean isClosed()
-    {
-        return closed.get();
-    }
-
-    protected final void setClosed( final boolean closed )
-    {
-        this.closed.set( closed );
-    }
 
     @Override
     public void release( final ByteBuffer byteBuffer )
@@ -157,7 +144,7 @@ public class MergingBubbyPoolableByteBuffersFactory
 
         checkState( !isClosed() );
 
-        LinkedByteBuffer linkedByteBuffer = borrowedBuffers.remove( getHash( byteBuffer ) );
+        LinkedByteBuffer linkedByteBuffer = borrowedBuffers.remove( DirectByteBufferUtils.getHash( byteBuffer ) );
             
         if ( linkedByteBuffer == null )
         {
@@ -274,7 +261,7 @@ public class MergingBubbyPoolableByteBuffersFactory
             
             buffer.byteBuffer.limit(bufferLimit);
             
-            borrowedBuffers.put( getHash( buffer.byteBuffer ), buffer );
+            borrowedBuffers.put( DirectByteBufferUtils.getHash( buffer.byteBuffer ), buffer );
             
             byteBuffers.add(buffer.byteBuffer);
             
@@ -325,18 +312,7 @@ public class MergingBubbyPoolableByteBuffersFactory
             }
         }
     }
-    
-    protected final Logger getLogger()
-    {
-        return logger;
-    }
-    
-    protected static Integer getHash( final ByteBuffer buffer )
-    {
-        final int hashCode = System.identityHashCode( buffer );
-//      return ((hashCode << 7) - hashCode + (hashCode >>> 9) + (hashCode >>> 17));
-        return hashCode;
-    }
+
 
     @Override
     public ByteBufferStream getInOutStream()
@@ -350,6 +326,12 @@ public class MergingBubbyPoolableByteBuffersFactory
         return minAllocationSize;
     }
     
+    /**
+     * Bubby representation. Hold link to parent and other bubby.
+     * 
+     * @author bperroud
+     *
+     */
     private class LinkedByteBuffer {
         
         private final ByteBuffer byteBuffer;
@@ -364,6 +346,16 @@ public class MergingBubbyPoolableByteBuffersFactory
         }
     }
     
+    /**
+     * Queue based on linked nodes. All 3 operations {@link LinkedHashQueue#poll()}, 
+     * {@link LinkedHashQueue#offer(Object)} and {@link LinkedHashQueue#remove(Object)} 
+     * are done in constant time. 
+     * 
+     * Note on {@link LinkedHashQueue#remove(Object)}: {@link HashMap} is used internally
+     * to achieve constant time for removing.
+     * 
+     * @param <V> class of the payload
+     */
     public static class LinkedHashQueue<V> {
         
         final Entry head = new Entry(null);
@@ -417,6 +409,9 @@ public class MergingBubbyPoolableByteBuffersFactory
             }
         }
         
+        /**
+         * Internal linked node
+         */
         class Entry {
             Entry after = null;
             Entry before = null;

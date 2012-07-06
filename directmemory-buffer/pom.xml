@@ -48,9 +48,17 @@ under the License.
 
   <dependencies>
     <dependency>
-      <groupId>org.apache.directmemory</groupId>
+      <groupId>${project.groupId}</groupId>
       <artifactId>directmemory-common</artifactId>
-      <version>0.2-SNAPSHOT</version>
+      <version>${project.version}</version>
+    </dependency>
+    <dependency>
+      <groupId>com.google.guava</groupId>
+      <artifactId>guava</artifactId>
+    </dependency>
+    <dependency>
+      <groupId>org.slf4j</groupId>
+      <artifactId>slf4j-api</artifactId>
     </dependency>
     <dependency>
       <groupId>junit</groupId>

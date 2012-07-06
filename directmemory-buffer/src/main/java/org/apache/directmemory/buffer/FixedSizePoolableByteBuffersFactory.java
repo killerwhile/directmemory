@@ -27,12 +27,9 @@ import java.util.Map;
 import java.util.Queue;
 import java.util.concurrent.ConcurrentHashMap;
 import java.util.concurrent.ConcurrentLinkedQueue;
-import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.directmemory.memory.allocator.DirectByteBufferUtils;
 import org.apache.directmemory.stream.ByteBufferStream;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import static com.google.common.base.Preconditions.checkArgument;
 import static com.google.common.base.Preconditions.checkState;
@@ -46,12 +43,12 @@ import static com.google.common.base.Preconditions.checkState;
  * @since 0.2
  */
 public class FixedSizePoolableByteBuffersFactory
+	extends AbstractPoolableByteBuffersFactory
     implements PoolableByteBuffersFactory
 {
 
     private static final long MAX_SEGMENT_SIZE = Integer.MAX_VALUE / 2;
     
-    protected final Logger logger = LoggerFactory.getLogger( this.getClass() );
 
     // Collection that keeps track of the parent buffers (segments) where slices are allocated
     private final List<ByteBuffer> segmentsBuffers;
@@ -68,7 +65,6 @@ public class FixedSizePoolableByteBuffersFactory
     // Collection that keeps track of borrowed buffers
     private final Map<Integer, ByteBuffer> usedSliceBuffers = new ConcurrentHashMap<Integer, ByteBuffer>();
 
-    private final AtomicBoolean closed = new AtomicBoolean( false );
 
 
     /**
@@ -128,15 +124,7 @@ public class FixedSizePoolableByteBuffersFactory
     }
 
 
-    protected final boolean isClosed()
-    {
-        return closed.get();
-    }
 
-    protected final void setClosed( final boolean closed )
-    {
-        this.closed.set( closed );
-    }
     
     protected ByteBuffer findFreeBuffer( )
     {
@@ -150,7 +138,7 @@ public class FixedSizePoolableByteBuffersFactory
 
         checkState( !isClosed() );
 
-        if ( usedSliceBuffers.remove( getHash( byteBuffer ) ) == null )
+        if ( usedSliceBuffers.remove( DirectByteBufferUtils.getHash( byteBuffer ) ) == null )
         {
             throw new IllegalStateException( "This buffer has already been freeed" );
         }
@@ -185,7 +173,7 @@ public class FixedSizePoolableByteBuffersFactory
             byteBuffer.clear();
             byteBuffer.limit( Math.min( sliceSize, size - allocatedSize ) );
 
-            usedSliceBuffers.put( getHash( byteBuffer ), byteBuffer );
+            usedSliceBuffers.put( DirectByteBufferUtils.getHash( byteBuffer ), byteBuffer );
             
             byteBuffers.add(byteBuffer);
             allocatedSize += sliceSize;
@@ -239,17 +227,6 @@ public class FixedSizePoolableByteBuffersFactory
         }
     }
     
-    protected final Logger getLogger()
-    {
-        return logger;
-    }
-    
-    protected static Integer getHash( final ByteBuffer buffer )
-    {
-        final int hashCode = System.identityHashCode( buffer );
-//      return ((hashCode << 7) - hashCode + (hashCode >>> 9) + (hashCode >>> 17));
-        return hashCode;
-    }
 
     @Override
     public ByteBufferStream getInOutStream()
@@ -257,6 +234,7 @@ public class FixedSizePoolableByteBuffersFactory
         return new ByteBufferStream( this );
     }
 
+    
     @Override
     public int getDefaultAllocationSize()
     {

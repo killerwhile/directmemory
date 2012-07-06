@@ -27,16 +27,15 @@ import java.util.List;
 import org.apache.directmemory.stream.ByteBufferStream;
 
 /**
+ * Lean {@link ByteBuffer}s Factory interface.
  * 
- * @author bperroud
- *
  * @since 0.2
  */
 public interface PoolableByteBuffersFactory extends Closeable
 {
 
     /**
-     * Allocates and returns a {@link List} of {@link ByteBuffer} with all {@link ByteBuffer#limit()} set to the given size.
+     * Allocates and returns a {@link List} of {@link ByteBuffer} with all {@link ByteBuffer#limit()} set to a given size.
      * When the allocation fails, it throws an {@link BufferOverflowException}. 
      * @param size : the size in byte to allocate
      * @return a {@link List} of {@link ByteBuffer} with the total capacity of the requested size, or throws an {@link BufferOverflowException} if the allocation fails.
@@ -45,13 +44,14 @@ public interface PoolableByteBuffersFactory extends Closeable
     List<ByteBuffer> borrow( final int size ) throws BufferOverflowException;
     
     /**
-     * TODO
-     * @return
+     * Get a {@link ByteBufferStream}, which enable streaming in and out {@link ByteBuffer} transparantly, without giving initial size.
+     * 
+     * @return {@link ByteBufferStream} with the current {@link PoolableByteBuffersFactory} as the factory.
      */
     ByteBufferStream getInOutStream();
     
     /**
-     * Returns the given {@link ByteBuffer} making it available for a future usage. 
+     * Returns the given {@link ByteBuffer} the factory, available it for a future usage. 
      * Returning twice a {@link ByteBuffer} will throw an {@link IllegalStateException}. 
      * @param buffer : the {@link ByteBuffer} to return
      */
@@ -64,10 +64,14 @@ public interface PoolableByteBuffersFactory extends Closeable
     void clear();
     
     /**
-     * @return the internal total size that can be allocated 
+     * @return the total size that can be allocated 
      */
     long getCapacity();
     
+    /**
+     * @return the advised size to be allocated. Allocating more than this size is allowed, the result is implementation dependent.
+     *   Allocating a multiple of this size is always a good idea.
+     */
     int getDefaultAllocationSize();
     
 }
