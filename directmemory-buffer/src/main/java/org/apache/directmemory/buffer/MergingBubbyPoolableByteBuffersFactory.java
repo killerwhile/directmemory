@@ -158,7 +158,7 @@ public class MergingBubbyPoolableByteBuffersFactory
     }
 
     @Override
-    public void release( final ByteBuffer byteBuffer )
+    public synchronized void release( final ByteBuffer byteBuffer )
     {
 
         checkState( !isClosed() );
@@ -175,9 +175,9 @@ public class MergingBubbyPoolableByteBuffersFactory
     
     
     private void merge(LinkedByteBuffer linkedByteBuffer) {
-        while (linkedByteBuffer.level > 0 && linkedByteBuffer.bubby.free.compareAndSet(true, false)) {
- 
-        	linkedByteBuffer.free.set(false);
+        while (linkedByteBuffer.level > 0 
+        		&& linkedByteBuffer.bubby != null 
+        		&& linkedByteBuffer.bubby.free.compareAndSet(true, false)) {
             
             freeBuffers[ linkedByteBuffer.level ].remove( linkedByteBuffer.bubby );
             
@@ -188,6 +188,7 @@ public class MergingBubbyPoolableByteBuffersFactory
             linkedByteBuffer.bubby = null;
             
             linkedByteBuffer = parent;
+	            
         }
         
         linkedByteBuffer.free.set(true);
@@ -197,7 +198,7 @@ public class MergingBubbyPoolableByteBuffersFactory
     }
 
     @Override
-    public List<ByteBuffer> borrow( int size ) throws BufferOverflowException
+    public synchronized List<ByteBuffer> borrow( int size ) throws BufferOverflowException
     {
 
         checkState( !isClosed() );
@@ -220,6 +221,10 @@ public class MergingBubbyPoolableByteBuffersFactory
             
             buffer = freeBuffers[level].poll();
             
+            if (buffer != null && !buffer.free.compareAndSet(true, false)) {
+        		continue;
+        	}
+            
             if (buffer == null) {
                 
             	boolean freeBufferSplit = false;
@@ -230,17 +235,16 @@ public class MergingBubbyPoolableByteBuffersFactory
 	                    
 	                    buffer = freeBuffers[searchedLevel].poll();
 	                    if (buffer != null) {
-	                        break;
+	                    	
+	                    	// Ensure this buffer is not currently being merged with its bubby
+		                	if (buffer.free.compareAndSet(true, false)) {
+	                    		break;
+	                    	}
 	                    }
 	                }
 	                
 	                if (buffer != null) {
-	                	
-	                	// Ensure this buffer is not currently being merged with its bubby
-	                	if (!buffer.free.compareAndSet(true, false)) {
-                    		break;
-                    	}
-	                		                    
+	                	          
 	                    do {
 	                        
 	                        // split, offer one bubby to the free list, keep the second bubby.
@@ -255,6 +259,9 @@ public class MergingBubbyPoolableByteBuffersFactory
         	}
             	  
             if (buffer == null) {
+            	
+            	// TODO: Try from a bigger level first before failing directly.
+            	
             	// free all borrowed buffers
             	for (ByteBuffer alreadyBorrowedBuffer : byteBuffers) {
                     release( alreadyBorrowedBuffer );
@@ -266,6 +273,8 @@ public class MergingBubbyPoolableByteBuffersFactory
             
             int bufferLimit = Math.min(buffer.byteBuffer.capacity(), sizeToTryToAllocate);
             
+            // Reset buffer's state
+            buffer.byteBuffer.clear();
             buffer.byteBuffer.limit(bufferLimit);
             
             borrowedBuffers.put( DirectByteBufferUtils.getHash( buffer.byteBuffer ), buffer );
