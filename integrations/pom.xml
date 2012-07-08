@@ -39,6 +39,7 @@
     This integration is not yet ready for a release
     <module>guice</module>
     -->
+    <module>netty</module>
   </modules>
 
   <dependencyManagement>

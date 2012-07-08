@@ -262,6 +262,7 @@ under the License.
     <protostuff.version>1.0.5</protostuff.version>
     <solr.version>3.6.0</solr.version>
     <solr.bundle.version>3.6.0_1</solr.bundle.version>
+    <netty.version>3.5.2.Final</netty.version>
     <slf4j.version>1.6.4</slf4j.version>
     <msgpack.version>0.6.5</msgpack.version>
     <protobuf.version>2.4.1</protobuf.version>
@@ -673,6 +674,11 @@ under the License.
         <groupId>org.apache.solr</groupId>
         <artifactId>solr-test-framework</artifactId>
         <version>${solr.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>io.netty</groupId>
+        <artifactId>netty</artifactId>
+        <version>${netty.version}</version>
       </dependency>
 
       <dependency>
