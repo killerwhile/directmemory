@@ -149,7 +149,7 @@ public class ByteBufferStream
         return o;
     }
     
-    int getCurrentCapacity() {
+    public int getCurrentCapacity() {
         if (byteBuffers.size() > 0) {
             int lastIndex = byteBuffers.size() - 1;
             return byteBufferStartPositions.get(lastIndex) + byteBuffers.get(lastIndex).limit();

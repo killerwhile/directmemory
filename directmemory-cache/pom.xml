@@ -98,12 +98,10 @@ under the License.
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>directmemory-common</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>${project.groupId}</groupId>
       <artifactId>directmemory-buffer</artifactId>
-      <version>${project.version}</version>
     </dependency>
     <dependency>
       <groupId>com.google.guava</groupId>

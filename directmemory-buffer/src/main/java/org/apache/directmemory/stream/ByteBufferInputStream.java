@@ -80,9 +80,12 @@ public class ByteBufferInputStream
     @Override
     public synchronized void mark( int readlimit )
     {
-        if (offHeapStream.getOutputStream().getCurrentPosition() < readlimit) {
-            throw new BufferOverflowException();
-        }
+    	 if (offHeapStream.getOutputStream().getCurrentPosition() < readlimit) {
+             throw new BufferOverflowException();
+         }
+    	 if (offHeapStream.getCurrentCapacity() < readlimit) {
+             throw new BufferOverflowException();
+         }
         ByteBufferStreamOffset mark = offHeapStream.computeOffset( readlimit );
         this.markedOffset.bufferIndex = mark.bufferIndex;
         this.markedOffset.bufferPosition = mark.bufferPosition;
@@ -94,6 +97,20 @@ public class ByteBufferInputStream
         return true;
     }
 
+    
+    protected void setOffset( int offset )
+    {
+    	 if (offHeapStream.getOutputStream().getCurrentPosition() < offset) {
+             throw new BufferOverflowException();
+         }
+    	 if (offHeapStream.getCurrentCapacity() < offset) {
+             throw new BufferOverflowException();
+         }
+        ByteBufferStreamOffset newOffset = offHeapStream.computeOffset( offset );
+        this.currentOffset.bufferIndex = newOffset.bufferIndex;
+        this.currentOffset.bufferPosition = newOffset.bufferPosition;
+    }
+    
     @Override
     public int read( byte[] b, int off, int len )
         throws IOException
@@ -148,6 +165,38 @@ public class ByteBufferInputStream
         } else {
             return -1;
         }
+    }
+    
+    public byte readByte(int offset) {
+    	setOffset(offset);
+    	try {
+    		final byte[] b = new byte[1];
+            int i = read(b);
+            
+            if (i > 0) {
+                return b[0];
+            } else {
+                return -1;
+            }
+            
+    	} catch (IOException e) {
+    		throw new IndexOutOfBoundsException(e.getMessage());
+    	}
+    }
+    
+    public int readBytes(int offset, byte[] bytes, int o, int len) {
+    	setOffset(offset);
+    	try {
+
+            int i = read(bytes, o, len);
+            
+            incrementedOffset(i);
+
+            return i;
+            
+    	} catch (IOException e) {
+    		throw new IndexOutOfBoundsException(e.getMessage());
+    	}
     }
     
     @Override

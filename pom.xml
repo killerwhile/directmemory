@@ -519,6 +519,16 @@ under the License.
       <!-- Internal Project Artifacts -->
       <dependency>
         <groupId>org.apache.directmemory</groupId>
+        <artifactId>directmemory-common</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.directmemory</groupId>
+        <artifactId>directmemory-buffer</artifactId>
+        <version>${project.version}</version>
+      </dependency>
+      <dependency>
+        <groupId>org.apache.directmemory</groupId>
         <artifactId>directmemory-cache</artifactId>
         <version>${project.version}</version>
       </dependency>

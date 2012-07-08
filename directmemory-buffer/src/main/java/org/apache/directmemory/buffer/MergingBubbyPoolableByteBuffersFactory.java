@@ -36,15 +36,20 @@ import static com.google.common.base.Preconditions.checkState;
 /**
  * {@link PoolableByteBuffersFactory} implementation that instantiate {@link ByteBuffer}s. 
  * Allocation algorithm is based on Knuth's bubby allocation scheme. 
- *
+ * 
+ * Initial big segments of off heap memory are split in two bubbies of the same size
+ * (half of the parent's size), and then iteratively one bubby is selected and 
+ * split again till a buffer of the requested size if created and returned to the caller.
+ * 
+ * ... linked nodes ...
+ * ... sized optimized version where minExponent is found ... 
+ * 
  * @since 0.2
  */
 public class MergingBubbyPoolableByteBuffersFactory
     extends AbstractPoolableByteBuffersFactory
     implements PoolableByteBuffersFactory
 {
-
-    private static final long MAX_SEGMENT_SIZE = Integer.MAX_VALUE / 2;
 
     private static final int DEFAULT_MIN_ALLOCATION_SIZE = 128;
 
@@ -87,11 +92,6 @@ public class MergingBubbyPoolableByteBuffersFactory
 	public MergingBubbyPoolableByteBuffersFactory( final long totalSize, int numberOfSegments, final int minAllocationSize )
     {
 
-        this.minAllocationSize = minAllocationSize;
-        
-        this.segmentsBuffers = new ArrayList<ByteBuffer>( numberOfSegments );
-
-
         // Compute the size of each segments. A segment can't be bigger than Integer.MAX_VALUE, 
         // so either numberOfSegments is given appropriately, or we force a bigger number of segments.
         int segmentSize = (totalSize / numberOfSegments) > MAX_SEGMENT_SIZE ? (int)MAX_SEGMENT_SIZE : (int)(totalSize / numberOfSegments);
@@ -105,6 +105,10 @@ public class MergingBubbyPoolableByteBuffersFactory
         numberOfSegments = (int)(totalSize / segmentSize);
         
         checkState( numberOfSegments > 0 );
+        
+        this.minAllocationSize = minAllocationSize;
+        
+        this.segmentsBuffers = new ArrayList<ByteBuffer>( numberOfSegments );
         
         this.segmentSizeLevel = minExponantOf2( segmentSize );
         this.maxLevel = segmentSizeLevel - minExponantOf2 ( minAllocationSize ) + 1;
