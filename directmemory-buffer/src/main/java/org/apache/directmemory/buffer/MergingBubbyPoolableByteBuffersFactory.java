@@ -21,12 +21,12 @@ package org.apache.directmemory.buffer;
 
 import java.nio.BufferOverflowException;
 import java.nio.ByteBuffer;
-import java.util.ArrayList;
 import java.util.HashMap;
 import java.util.LinkedList;
 import java.util.List;
 import java.util.Map;
 import java.util.concurrent.ConcurrentHashMap;
+import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.directmemory.memory.allocator.DirectByteBufferUtils;
 import org.apache.directmemory.stream.ByteBufferStream;
@@ -44,6 +44,9 @@ import static com.google.common.base.Preconditions.checkState;
  * ... linked nodes ...
  * ... sized optimized version where minExponent is found ... 
  * 
+ * TODO: ensure concurrency correctness.
+ * TODO: avoid the need to have a had a bubby bigger or equals to the requested size to be able to allocate.
+ * 
  * @since 0.2
  */
 public class MergingBubbyPoolableByteBuffersFactory
@@ -54,7 +57,7 @@ public class MergingBubbyPoolableByteBuffersFactory
     private static final int DEFAULT_MIN_ALLOCATION_SIZE = 128;
 
     // Collection that keeps track of the parent buffers (segments) where slices are allocated
-    private final List<ByteBuffer> segmentsBuffers;
+    private final ByteBuffer[] segmentsBuffers;
 
     // Size of each slices dividing each segments of the slab
     private final int minAllocationSize;
@@ -108,7 +111,7 @@ public class MergingBubbyPoolableByteBuffersFactory
         
         this.minAllocationSize = minAllocationSize;
         
-        this.segmentsBuffers = new ArrayList<ByteBuffer>( numberOfSegments );
+        this.segmentsBuffers = new ByteBuffer[numberOfSegments];
         
         this.segmentSizeLevel = minExponantOf2( segmentSize );
         this.maxLevel = segmentSizeLevel - minExponantOf2 ( minAllocationSize ) + 1;
@@ -124,8 +127,8 @@ public class MergingBubbyPoolableByteBuffersFactory
         for ( int i = 0; i < numberOfSegments; i++ )
         {
             final ByteBuffer segment = ByteBuffer.allocateDirect( segmentSize );
-            segmentsBuffers.add( segment );
-                        
+            segmentsBuffers[i] = segment;
+            
             freeBuffers[0].offer( new LinkedByteBuffer( 0, segment ) );
             
             allocatedSize += segmentSize;
@@ -134,10 +137,22 @@ public class MergingBubbyPoolableByteBuffersFactory
         this.totalSize = allocatedSize;
     }
 
+	/**
+	 * Returns the smallest e where i <= 2^e 
+	 * 
+	 * @param i
+	 * @return
+	 */
     private static int minExponantOf2(int i ) {
         return (int)Math.ceil( Math.log( i ) / Math.log( 2 ) );
     }
     
+	/**
+	 * Returns the biggest e where i >= 2^e 
+	 * 
+	 * @param i
+	 * @return
+	 */
     private static int maxExponantOf2(int i ) {
         return (int)Math.floor( Math.log( i ) / Math.log( 2 ) );
     }
@@ -160,12 +175,11 @@ public class MergingBubbyPoolableByteBuffersFactory
     
     
     private void merge(LinkedByteBuffer linkedByteBuffer) {
-        while (linkedByteBuffer.level > 0 && linkedByteBuffer.bubby.free) {
-            linkedByteBuffer.free = false;
+        while (linkedByteBuffer.level > 0 && linkedByteBuffer.bubby.free.compareAndSet(true, false)) {
+ 
+        	linkedByteBuffer.free.set(false);
             
             freeBuffers[ linkedByteBuffer.level ].remove( linkedByteBuffer.bubby );
-            
-            linkedByteBuffer.bubby.free = false;
             
             LinkedByteBuffer parent = linkedByteBuffer.parent;
             linkedByteBuffer.parent = null;
@@ -176,9 +190,10 @@ public class MergingBubbyPoolableByteBuffersFactory
             linkedByteBuffer = parent;
         }
         
-        linkedByteBuffer.free = true;
-        
+        linkedByteBuffer.free.set(true);
+
         freeBuffers[ linkedByteBuffer.level ].offer( linkedByteBuffer );
+        
     }
 
     @Override
@@ -191,14 +206,15 @@ public class MergingBubbyPoolableByteBuffersFactory
 
         int allocatedSize = 0;
         
+        // Size requested can be bigger than a single segment size.
+        // We can thus return multiple ByteBuffers spread across 
+        // multiple segments.
         do {
-            int sizeToTryToAllocate = Math.min(size - allocatedSize, this.segmentSize);
+            // size to allocate at once can't be bigger than the segmentSize.
+        	int sizeToTryToAllocate = Math.min(size - allocatedSize, this.segmentSize);
             
+        	// compute the level where to start looking at
             int level = (int)Math.min( segmentSizeLevel - maxExponantOf2 ( sizeToTryToAllocate ), maxLevel - 1);
-            
-            if (level < 0) {
-            	throw new BufferOverflowException();
-            }
             
             LinkedByteBuffer buffer = null;
             
@@ -206,51 +222,38 @@ public class MergingBubbyPoolableByteBuffersFactory
             
             if (buffer == null) {
                 
-                // find a free buffer
-                for (int searchedLevel = level - 1; searchedLevel >= 0; searchedLevel--) {
-                    
-                    buffer = freeBuffers[searchedLevel].poll();
-                    if (buffer != null) {
-                        break;
-                    }
-                }
+            	boolean freeBufferSplit = false;
+            	
+            	do {
+	                // find a free buffer
+	                for (int searchedLevel = level - 1; searchedLevel >= 0; searchedLevel--) {
+	                    
+	                    buffer = freeBuffers[searchedLevel].poll();
+	                    if (buffer != null) {
+	                        break;
+	                    }
+	                }
+	                
+	                if (buffer != null) {
+	                	
+	                	// Ensure this buffer is not currently being merged with its bubby
+	                	if (!buffer.free.compareAndSet(true, false)) {
+                    		break;
+                    	}
+	                		                    
+	                    do {
+	                        
+	                        // split, offer one bubby to the free list, keep the second bubby.
+	                        buffer = splitByteBufferAndOfferOne(buffer);
+	                        
+	                    } while (level > buffer.level);
+	                    
+	                    freeBufferSplit = true;
+	                }
                 
-                if (buffer != null) {
-                    int newBubbySize;
-                    
-                    do {
-                        buffer.free = false;
-                        
-                        // split.
-                        newBubbySize = buffer.byteBuffer.limit() / 2;
-                        
-                        buffer.byteBuffer.position( 0 );
-                        buffer.byteBuffer.limit(newBubbySize);
-                        
-                        ByteBuffer b1 = buffer.byteBuffer.slice();
-                                            
-                        buffer.byteBuffer.position( newBubbySize );
-                        buffer.byteBuffer.limit( newBubbySize * 2 );
-                        
-                        ByteBuffer b2 = buffer.byteBuffer.slice();
-    
-                        LinkedByteBuffer lb1 = new LinkedByteBuffer( buffer.level + 1, b1 );
-                        LinkedByteBuffer lb2 = new LinkedByteBuffer( buffer.level + 1, b2 );
-                        
-                        lb1.bubby = lb2;
-                        lb2.bubby = lb1;
-                        lb1.parent = buffer;
-                        lb2.parent = buffer;
-                        
-                        
-                        freeBuffers[ lb2.level ].offer( lb2 );
-                        
-                        buffer = lb1;
-                        
-                    } while (level > buffer.level);
-                }
-            }
-                
+            	} while (buffer != null && !freeBufferSplit);
+        	}
+            	  
             if (buffer == null) {
             	// free all borrowed buffers
             	for (ByteBuffer alreadyBorrowedBuffer : byteBuffers) {
@@ -259,7 +262,7 @@ public class MergingBubbyPoolableByteBuffersFactory
                 throw new BufferOverflowException();
             }
             
-            buffer.free = false;
+            buffer.free.set(false);
             
             int bufferLimit = Math.min(buffer.byteBuffer.capacity(), sizeToTryToAllocate);
             
@@ -277,6 +280,34 @@ public class MergingBubbyPoolableByteBuffersFactory
 
     }
 
+    
+    private LinkedByteBuffer splitByteBufferAndOfferOne(LinkedByteBuffer parentByteBuffer) {
+    	
+    	
+    	int newBubbySize = parentByteBuffer.byteBuffer.limit() / 2;
+        
+    	parentByteBuffer.byteBuffer.position( 0 );
+    	parentByteBuffer.byteBuffer.limit(newBubbySize);
+        
+        ByteBuffer b1 = parentByteBuffer.byteBuffer.slice();
+                            
+        parentByteBuffer.byteBuffer.position( newBubbySize );
+        parentByteBuffer.byteBuffer.limit( newBubbySize * 2 );
+        
+        ByteBuffer b2 = parentByteBuffer.byteBuffer.slice();
+
+        LinkedByteBuffer lb1 = new LinkedByteBuffer( parentByteBuffer.level + 1, b1 );
+        LinkedByteBuffer lb2 = new LinkedByteBuffer( parentByteBuffer.level + 1, b2 );
+        
+        lb1.bubby = lb2;
+        lb2.bubby = lb1;
+        lb1.parent = parentByteBuffer;
+        lb2.parent = parentByteBuffer;
+        
+        freeBuffers[ lb2.level ].offer( lb2 );
+        
+        return lb1;
+    }
 
     @Override
     public void clear()
@@ -342,7 +373,7 @@ public class MergingBubbyPoolableByteBuffersFactory
         private final int level;
         private LinkedByteBuffer bubby;
         private LinkedByteBuffer parent;
-        private boolean free = true;
+        private final AtomicBoolean free = new AtomicBoolean(true);
         
         LinkedByteBuffer(int level, ByteBuffer byteBuffer) {
             this.level = level;
@@ -370,7 +401,7 @@ public class MergingBubbyPoolableByteBuffersFactory
             head.before = head;
         }
         
-        public V poll() {
+        public synchronized V poll() {
             if (head.after == head) {
                 return null;
             }
@@ -386,7 +417,7 @@ public class MergingBubbyPoolableByteBuffersFactory
             return entry.value;
         }
         
-        public void offer(V value) {
+        public synchronized void offer(V value) {
             
             if (!map.containsKey( value )) {
                 final Entry entry = new Entry( value );
@@ -403,7 +434,7 @@ public class MergingBubbyPoolableByteBuffersFactory
             }
         }
         
-        public void remove(V value) {
+        public synchronized void remove(V value) {
             final Entry entry = map.remove( value );
             if (entry != null) {
                 entry.after.before = entry.before;
