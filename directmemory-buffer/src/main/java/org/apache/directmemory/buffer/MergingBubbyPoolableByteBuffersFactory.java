@@ -179,6 +179,16 @@ public class MergingBubbyPoolableByteBuffersFactory
     }
 
 
+    @Override
+    public void release( final List<ByteBuffer> byteBuffers )
+    {
+        for (final ByteBuffer bb : byteBuffers)
+        {
+            release(bb);
+        }
+    }
+
+
     private void merge(LinkedByteBuffer linkedByteBuffer) {
         while (linkedByteBuffer.level > 0
                 && linkedByteBuffer.bubby != null

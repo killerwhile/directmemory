@@ -51,11 +51,18 @@ public interface PoolableByteBuffersFactory extends Closeable
     ByteBufferStream getInOutStream();
 
     /**
-     * Returns the given {@link ByteBuffer} the factory, available it for a future usage.
+     * Returns the given {@link ByteBuffer} to the factory, available it for a future usage.
      * Returning twice a {@link ByteBuffer} will throw an {@link IllegalStateException}.
      * @param buffer : the {@link ByteBuffer} to return
      */
     void release( final ByteBuffer buffer );
+
+    /**
+     * Returns the given {@link List} of {@link ByteBuffer}s to the factory, available it for a future usage.
+     * Returning twice the same {@link ByteBuffer} will throw an {@link IllegalStateException}.
+     * @param buffer : the {@link ByteBuffer} to return
+     */
+    void release( final List<ByteBuffer> buffers );
 
 
     /**

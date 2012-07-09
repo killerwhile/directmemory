@@ -142,6 +142,15 @@ public class FixedSizePoolableByteBuffersFactory
     }
 
     @Override
+    public void release( final List<ByteBuffer> byteBuffers )
+    {
+        for (final ByteBuffer bb : byteBuffers)
+        {
+            release(bb);
+        }
+    }
+
+    @Override
     public List<ByteBuffer> borrow( int size ) throws BufferOverflowException
     {
 
