@@ -5,14 +5,12 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.Random;
 import java.util.concurrent.CountDownLatch;
-import java.util.concurrent.Executor;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.atomic.AtomicBoolean;
 
 import org.apache.directmemory.measures.Ram;
-import org.apache.directmemory.memory.allocator.DirectByteBufferUtils;
 import org.junit.Ignore;
 import org.junit.Test;
 
@@ -325,9 +323,7 @@ public abstract class AbstractPoolableByteBuffersFactoryTest {
 }
 
     protected void release(PoolableByteBuffersFactory factory, List<ByteBuffer> buffers) {
-        for (ByteBuffer buffer : buffers) {
-            factory.release( buffer );
-        }
+        factory.release( buffers );
     }
 
 }
