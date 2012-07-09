@@ -25,7 +25,7 @@ import java.nio.ByteBuffer;
 import static com.google.common.base.Preconditions.checkArgument;
 
 /**
- * Utility class around direct {@link ByteBuffer} 
+ * Utility class around direct {@link ByteBuffer}
  *
  */
 public class DirectByteBufferUtils
@@ -51,7 +51,7 @@ public class DirectByteBufferUtils
         directBufferCleaner = directBufferCleanerX;
         directBufferCleanerClean = directBufferCleanerCleanX;
     }
-    
+
     /**
      * DirectByteBuffers are garbage collected by using a phantom reference and
      * a reference queue. Every once a while, the JVM checks the reference queue
@@ -59,11 +59,11 @@ public class DirectByteBufferUtils
      * immediately after discarding all references to a DirectByteBuffer, it's
      * easy to OutOfMemoryError yourself using DirectByteBuffers. This function
      * explicitly calls the Cleaner method of a DirectByteBuffer.
-     * 
+     *
      * @param toBeDestroyed
      *            The {@link ByteBuffer} that will be "cleaned". Utilizes
      *            reflection.
-     * 
+     *
      */
     public static void destroyDirectByteBuffer( final ByteBuffer buffer )
     {
@@ -84,13 +84,13 @@ public class DirectByteBufferUtils
         }
 
     }
-    
-    
+
+
     public static Integer getHash( final ByteBuffer buffer )
     {
         final int hashCode = System.identityHashCode( buffer );
 //      return ((hashCode << 7) - hashCode + (hashCode >>> 9) + (hashCode >>> 17));
         return hashCode;
     }
-    
+
 }

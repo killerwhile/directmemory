@@ -10,12 +10,12 @@ import org.junit.Test;
 public class MergingBubbyPoolableByteBuffersFactoryTest extends AbstractPoolableByteBuffersFactoryTest
 {
 
-    
+
     @Test
     public void testLinkeHashQueue() {
-        
+
         LinkedHashQueue<Integer> lhq = new LinkedHashQueue<Integer>();
-        
+
         lhq.offer( Integer.valueOf(1) );
 
         lhq.offer( Integer.valueOf(3) );
@@ -29,12 +29,12 @@ public class MergingBubbyPoolableByteBuffersFactoryTest extends AbstractPoolable
 
         Assert.assertEquals(Integer.valueOf(1), lhq.poll());
         Assert.assertEquals(Integer.valueOf(3), lhq.poll());
-        
+
         lhq.remove( Integer.valueOf(6) );
-        
+
         Assert.assertEquals(Integer.valueOf(2), lhq.poll());
         Assert.assertEquals(Integer.valueOf(4), lhq.poll());
-        
+
         Assert.assertNull(lhq.poll());
 
         lhq.offer( Integer.valueOf(5) );
@@ -44,31 +44,31 @@ public class MergingBubbyPoolableByteBuffersFactoryTest extends AbstractPoolable
         Assert.assertNull(lhq.poll());
 
     }
-    
-    
+
+
     @Test(expected = IllegalStateException.class)
     public void testInstanciateWithOddNumbers() {
-    	
-    	final int SLICE_SIZE = 100;
-        final int TOTAL_SIZE = Ram.Mb( 2 ) - 1;
-        
-        getPoolableByteBuffersFactory( TOTAL_SIZE, SLICE_SIZE, 1 );
-        
-    }
-    
-    @Test(expected = IllegalStateException.class)
-    public void testBorrowAndReleaseWithOddNumbers() {
-        
+
         final int SLICE_SIZE = 100;
         final int TOTAL_SIZE = Ram.Mb( 2 ) - 1;
-        
+
         getPoolableByteBuffersFactory( TOTAL_SIZE, SLICE_SIZE, 1 );
-        
+
     }
 
-	@Override
-	protected PoolableByteBuffersFactory getPoolableByteBuffersFactory(
-			long totalSize, int bufferSize, int numberOfSegments) {
-		return new MergingBubbyPoolableByteBuffersFactory( totalSize, numberOfSegments, bufferSize );
-	}
+    @Test(expected = IllegalStateException.class)
+    public void testBorrowAndReleaseWithOddNumbers() {
+
+        final int SLICE_SIZE = 100;
+        final int TOTAL_SIZE = Ram.Mb( 2 ) - 1;
+
+        getPoolableByteBuffersFactory( TOTAL_SIZE, SLICE_SIZE, 1 );
+
+    }
+
+    @Override
+    protected PoolableByteBuffersFactory getPoolableByteBuffersFactory(
+            long totalSize, int bufferSize, int numberOfSegments) {
+        return new MergingBubbyPoolableByteBuffersFactory( totalSize, numberOfSegments, bufferSize );
+    }
 }

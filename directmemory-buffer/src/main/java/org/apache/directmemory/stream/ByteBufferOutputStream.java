@@ -32,16 +32,16 @@ public class ByteBufferOutputStream
 {
 
     private final ByteBufferStream offHeapStream;
-    
+
     private final List<ByteBuffer> byteBuffers;
 
     private final List<Integer> byteBufferStartPositions;
 
     private final ByteBufferStreamOffset currentOffset = new ByteBufferStreamOffset();
 
-    
+
     private final AtomicBoolean closed = new AtomicBoolean(false);
-    
+
     public ByteBufferOutputStream( final ByteBufferStream offHeapStream )
     {
         this.offHeapStream = offHeapStream;
@@ -70,60 +70,60 @@ public class ByteBufferOutputStream
     {
         Preconditions.checkPositionIndex( off + len, b.length );
         Preconditions.checkState( !isClosed() );
-        
+
         int remainingBytes = len;
         int internalOffset = off;
 
         ensureWritableBytes( len );
-        
+
         while (remainingBytes > 0)
         {
             final ByteBuffer byteBuffer = getCurrentByteBuffer();
-            
+
             int bytesToWrite = Math.min( getCurrentRemainingBytes(), remainingBytes );
-            
+
             byteBuffer.put( b, internalOffset, bytesToWrite );
-            
+
             remainingBytes -= bytesToWrite;
             internalOffset += bytesToWrite;
-            
+
             incrementedOffset( bytesToWrite );
         }
     }
 
-    
+
     /**
      * Ensure that at least minWritableBytes of writable bytes are available to be written.
      * Allocate more {@link ByteBuffer}s from the factory otherwise.
-     * 
+     *
      * @param minWritableBytes
      */
     private void ensureWritableBytes(int minWritableBytes) {
-        
+
         int remainingBytes = getRemainingWritableBytes();
-        
+
         if ( remainingBytes < minWritableBytes  ) {
             offHeapStream.allocate( minWritableBytes - remainingBytes );
         }
     }
-    
-    
-    
+
+
+
     private int getRemainingWritableBytes() {
-        
+
         if (currentOffset.bufferIndex >= byteBuffers.size() || currentOffset.bufferIndex >= byteBufferStartPositions.size()) {
             return 0;
         }
-        
+
         int remainingWritableBytes = byteBufferStartPositions.get(byteBufferStartPositions.size() - 1) + byteBuffers.get( byteBuffers.size() - 1 ).limit()
-            - (byteBufferStartPositions.get(currentOffset.bufferIndex) + currentOffset.bufferPosition); 
+            - (byteBufferStartPositions.get(currentOffset.bufferIndex) + currentOffset.bufferPosition);
 
         return remainingWritableBytes;
     }
-    
-    
-    
-    
+
+
+
+
     int getCurrentPosition() {
         int bufferSize = byteBuffers.size();
         if (bufferSize > 0) {
@@ -138,12 +138,12 @@ public class ByteBufferOutputStream
             return 0;
         }
     }
-    
+
     private ByteBuffer getCurrentByteBuffer() {
         return byteBuffers.get(currentOffset.bufferIndex);
     }
-    
-    
+
+
     private void incrementedOffset( int increment )
     {
         Preconditions.checkArgument( increment >= 0 );
@@ -166,7 +166,7 @@ public class ByteBufferOutputStream
             return 0;
         }
     }
-    
+
     @Override
     public void write( final byte[] b )
     {
@@ -181,7 +181,7 @@ public class ByteBufferOutputStream
         wrappedByte[0] = b;
         write( wrappedByte, 0, 1 );
     }
-    
+
     boolean isClosed()
     {
         return closed.get();

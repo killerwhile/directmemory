@@ -37,16 +37,16 @@ import static com.google.common.base.Preconditions.checkState;
 /**
  * {@link PoolableByteBuffersFactory} implementation that instantiate {@link ByteBuffer}s of fixed size, called slices.
  * Highly inspired from Linux kernel SLAB's allocation.
- * 
+ *
  * @author bperroud
- * 
+ *
  * @since 0.2
  */
 public class FixedSizePoolableByteBuffersFactory
-	extends AbstractPoolableByteBuffersFactory
+    extends AbstractPoolableByteBuffersFactory
     implements PoolableByteBuffersFactory
 {
-    
+
     // Collection that keeps track of the parent buffers (segments) where slices are allocated
     private final List<ByteBuffer> segmentsBuffers;
 
@@ -79,10 +79,10 @@ public class FixedSizePoolableByteBuffersFactory
 
         checkArgument( numberOfSegments > 0 );
 
-        // Compute the size of each segments. A segment can't be bigger than Integer.MAX_VALUE / 2, 
+        // Compute the size of each segments. A segment can't be bigger than Integer.MAX_VALUE / 2,
         // so either numberOfSegments is given appropriately, or we force a bigger number of segments.
         int segmentSize = (totalSize / numberOfSegments) > MAX_SEGMENT_SIZE ? (int)MAX_SEGMENT_SIZE : (int)(totalSize / numberOfSegments);
-        
+
         // size is rounded down to a multiple of the slice size
         segmentSize -= segmentSize % sliceSize;
 
@@ -92,14 +92,14 @@ public class FixedSizePoolableByteBuffersFactory
         this.segmentsBuffers = new ArrayList<ByteBuffer>( numberOfSegments );
 
         long allocatedSize = 0;
-        
+
         // Create all parents segments.
         for ( int i = 0; i < numberOfSegments; i++ )
         {
             final ByteBuffer segment = ByteBuffer.allocateDirect( segmentSize );
             segmentsBuffers.add( segment );
             allocatedSize += segmentSize;
-            
+
             // Create all slabs
             for ( int j = 0; j < segment.capacity(); j += sliceSize )
             {
@@ -109,17 +109,17 @@ public class FixedSizePoolableByteBuffersFactory
                 final ByteBuffer slice = segment.slice();
                 freeBuffers.add( slice );
             }
-            
-            // set the position of the parent ByteBuffer to the end to avoid writing 
+
+            // set the position of the parent ByteBuffer to the end to avoid writing
             // data directly inside.
             segment.position( segmentSize );
         }
-        
+
         this.totalSize = allocatedSize;
 
     }
 
-    
+
     protected ByteBuffer findFreeBuffer( )
     {
         // TODO : Add capacity to wait till a given timeout for a freed buffer
@@ -149,15 +149,15 @@ public class FixedSizePoolableByteBuffersFactory
 
         // How many slabs to allocate to succeed this request
         int numOfBBToAllocate = (int)Math.ceil( (double)size / sliceSize );
-        
+
         final List<ByteBuffer> byteBuffers = new ArrayList<ByteBuffer>(numOfBBToAllocate);
-        
+
         ByteBuffer lastByteBuffer = null;
-        
+
         for (int i = 0; i < numOfBBToAllocate; i++) {
-            
+
             final ByteBuffer byteBuffer = findFreeBuffer();
-            
+
             if (byteBuffer == null) {
                 // free all borrowed buffers
                 for (ByteBuffer alreadyBorrowedBuffer : byteBuffers) {
@@ -165,24 +165,24 @@ public class FixedSizePoolableByteBuffersFactory
                 }
                 throw new BufferOverflowException();
             }
-            
+
             byteBuffers.add(byteBuffer);
 
             // Reset buffer's state
             byteBuffer.clear();
-            
+
             // Keep track of the borrowed buffer
             usedSliceBuffers.put( DirectByteBufferUtils.getHash( byteBuffer ), byteBuffer );
-            
+
             lastByteBuffer = byteBuffer;
         }
 
         if (lastByteBuffer != null) {
-        	// Set the limit, can be partial if the requested allocation size is not
-        	// a multiple of sliceSize
-        	lastByteBuffer.limit( Math.min( sliceSize, size - (numOfBBToAllocate - 1) * sliceSize) );
+            // Set the limit, can be partial if the requested allocation size is not
+            // a multiple of sliceSize
+            lastByteBuffer.limit( Math.min( sliceSize, size - (numOfBBToAllocate - 1) * sliceSize) );
         }
-        
+
         return byteBuffers;
 
     }
@@ -195,7 +195,7 @@ public class FixedSizePoolableByteBuffersFactory
     @Override
     public void clear()
     {
-    	// Re-add all borrowed buffer into the free buffer's queue.
+        // Re-add all borrowed buffer into the free buffer's queue.
         for ( final Map.Entry<Integer, ByteBuffer> entry : usedSliceBuffers.entrySet() )
         {
             freeBuffers.offer( entry.getValue() );
@@ -231,7 +231,7 @@ public class FixedSizePoolableByteBuffersFactory
             }
         }
     }
-    
+
 
     @Override
     public ByteBufferStream getInOutStream()
@@ -239,11 +239,11 @@ public class FixedSizePoolableByteBuffersFactory
         return new ByteBufferStream( this );
     }
 
-    
+
     @Override
     public int getDefaultAllocationSize()
     {
         return sliceSize;
     }
-    
+
 }

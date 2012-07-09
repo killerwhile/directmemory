@@ -45,10 +45,10 @@ public class ByteBufferStreamOffset implements Comparable<ByteBufferStreamOffset
             }
         }
     }
-    
+
     @Override
     public String toString() {
         return getClass().getSimpleName() + "[" + bufferIndex + ":" + bufferPosition + "]";
     }
-    
+
 }

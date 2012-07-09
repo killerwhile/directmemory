@@ -36,7 +36,7 @@ public class ByteBufferStream
     private static final int DEFAULT_INITIAL_SIZE = -1;
 
     static final long EXPIRATION = -1L;
-    
+
     private final PoolableByteBuffersFactory factory;
 
     private final List<ByteBuffer> byteBuffers = new ArrayList<ByteBuffer>();
@@ -66,40 +66,40 @@ public class ByteBufferStream
             allocate( intialSize );
         }
     }
-    
+
     void allocate( int minWritableBytes ) {
         // Borrow at least minWritableBytes, but in multiple of allocationSize.
-        int sizeToAllocate = (int)Math.ceil((double)minWritableBytes / allocationSize ) * allocationSize; 
+        int sizeToAllocate = (int)Math.ceil((double)minWritableBytes / allocationSize ) * allocationSize;
         final List<ByteBuffer> freshBuffers = factory.borrow( sizeToAllocate );
-        
+
         for (ByteBuffer freshByteBuffer : freshBuffers) {
             int previousByteBufferLimit = byteBuffers.size() == 0 ? 0 : byteBuffers.get( byteBuffers.size() - 1 ).limit();
             int previousStartPositition = byteBufferStartPositions.size() == 0 ? 0 : byteBufferStartPositions.get( byteBufferStartPositions.size() - 1 );
-            
+
             // Stream want to use th full capacity of the buffer.
             freshByteBuffer.clear();
-            
+
             byteBuffers.add( freshByteBuffer );
             // compute buffers start's position : previous startPosition + previous buffer's capacity
             byteBufferStartPositions.add( previousStartPositition + previousByteBufferLimit );
         }
-        
+
         for (final ByteBufferInputStream in : offHeapInputStreams) {
             in.addByteBuffers( freshBuffers );
         }
     }
-    
+
 
     List<ByteBuffer> getByteBuffers() {
         return byteBuffers;
     }
-    
+
 
     List<Integer> getByteBufferStartPositions() {
         return byteBufferStartPositions;
     }
-    
-    
+
+
     public ByteBufferInputStream getInputStream()
     {
         ByteBufferInputStream bbis = new ByteBufferInputStream( this );
@@ -117,23 +117,23 @@ public class ByteBufferStream
         throws IOException
     {
         // TODO Auto-generated method stub
-        
+
     }
 
     void outputStreamClosed() {
-        
+
     }
 
     void inputStreamClosed() {
-    
+
     }
-    
-    
+
+
     ByteBufferStreamOffset computeOffset(int offset) throws BufferOverflowException
     {
-        
+
         int i = Collections.binarySearch( byteBufferStartPositions, Integer.valueOf( offset ) );
-        
+
         final ByteBufferStreamOffset o = new ByteBufferStreamOffset();
         if (i >= 0) {
             o.bufferIndex = i;
@@ -148,7 +148,7 @@ public class ByteBufferStream
         }
         return o;
     }
-    
+
     public int getCurrentCapacity() {
         if (byteBuffers.size() > 0) {
             int lastIndex = byteBuffers.size() - 1;
