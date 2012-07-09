@@ -112,7 +112,7 @@ public class FixedSizePoolableByteBuffersFactory
                 segment.position( j );
                 segment.limit( j + sliceSize );
                 final ByteBuffer slice = segment.slice();
-                freeBuffers[bufferIndex( slice )].add( slice );
+                freeBuffers[bufferIndex( slice )].offer( slice );
             }
 
             // set the position of the parent ByteBuffer to the end to avoid writing
