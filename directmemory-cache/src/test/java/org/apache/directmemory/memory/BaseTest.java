@@ -45,9 +45,9 @@ import com.google.common.collect.Maps;
 public class BaseTest
     extends AbstractBenchmark
 {
-    
+
     MemoryManagerService<Object> mem;
-    
+
     @Before
     public void initMMS()
     {
@@ -97,8 +97,8 @@ public class BaseTest
     public static void setup()
     {
         rnd = new Random();
-//		logger.info("off-heap allocated: " + Ram.inMb(mem.capacity()));
-//		logger.info("off-heap used:      " + Ram.inMb(mem.used()));
+//        logger.info("off-heap allocated: " + Ram.inMb(mem.capacity()));
+//        logger.info("off-heap used:      " + Ram.inMb(mem.used()));
         logger.info( "test - size: " + test.size() );
         logger.info( "test - errors: " + errors );
         logger.info( "heap - max: " + Ram.inMb( Runtime.getRuntime().maxMemory() ) );

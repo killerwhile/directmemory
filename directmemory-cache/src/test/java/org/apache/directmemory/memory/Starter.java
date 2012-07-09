@@ -43,7 +43,7 @@ public class Starter
         {
             System.out.println( "DirectMemory (for real testers only!) - usage:" );
             System.out.println(
-                "	java -XX:MaxDirectMemorySize=XXXXm -XmxXXXXm -XmsXXXXm -jar dm-test.jar <buffers> <Mb for each buffer> <entries>" );
+                "    java -XX:MaxDirectMemorySize=XXXXm -XmxXXXXm -XmsXXXXm -jar dm-test.jar <buffers> <Mb for each buffer> <entries>" );
             return;
         }
 
@@ -59,7 +59,7 @@ public class Starter
         starter.rawInsertMultipleBuffers( buffers, mb, entries );
     }
 
-    
+
     private static void dump( MemoryManagerService<Object> mms )
     {
         logger.info( "off-heap - allocated: " + Ram.inMb( mms.capacity() ) );
@@ -69,7 +69,7 @@ public class Starter
         logger.info( "heap     - free : " + Ram.inMb( Runtime.getRuntime().freeMemory() ) );
         logger.info( "************************************************" );
     }
-    
+
     public void dump( ByteBufferAllocator mem )
     {
         logger.info( "off-heap - buffer: " + mem.getNumber() );
@@ -79,7 +79,7 @@ public class Starter
         logger.info( "heap     - free : " + Ram.inMb( Runtime.getRuntime().freeMemory() ) );
         logger.info( "************************************************" );
     }
-    
+
     public void rawInsert( int megabytes, int howMany )
     {
         ByteBufferAllocator allocator = new MergingByteBufferAllocatorImpl( 1, megabytes * 1024 * 1024 );

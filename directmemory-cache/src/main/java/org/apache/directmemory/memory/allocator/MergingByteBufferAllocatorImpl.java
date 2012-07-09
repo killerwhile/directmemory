@@ -139,7 +139,7 @@ public class MergingByteBufferAllocatorImpl
             sizes.add( Integer.valueOf( i ) );
         }
 
-        // If totalSize < minSizeThreshold or totalSize is not a multiple of minSizeThreshold 
+        // If totalSize < minSizeThreshold or totalSize is not a multiple of minSizeThreshold
         // we force adding an element to the map
         if ( sizes.isEmpty() || !sizes.contains( totalSize ) )
         {
@@ -177,7 +177,7 @@ public class MergingByteBufferAllocatorImpl
 
             if ( returningLinkedBuffer.getAfter() != null )
             {
-                // if returningLinkedBuffer.getAfter is in the free list, it is free, it is free, then it's free and can be merged 
+                // if returningLinkedBuffer.getAfter is in the free list, it is free, it is free, then it's free and can be merged
                 if ( getFreeLinkedByteBufferCollection( returningLinkedBuffer.getAfter() ).contains(
                     returningLinkedBuffer.getAfter() ) )
                 {

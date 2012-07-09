@@ -74,7 +74,7 @@ public class ConcurrentTest
         mem = new MemoryManagerServiceImpl<Object>();
         mem.init( 1, 512 * 1024 * 1024 );
     }
-    
+
     @BenchmarkOptions( benchmarkRounds = 100000, warmupRounds = 0, concurrency = 100 )
     @Test
     public void store()

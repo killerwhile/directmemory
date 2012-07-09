@@ -207,7 +207,7 @@ public class Concurrent2Test
     {
         logger.info( "off-heap - allocated: " + Ram.inMb( mms.capacity() ) );
         logger.info( "off-heap - used:      " + Ram.inMb( mms.used() ) );
-        logger.info( "heap 	  - max: " + Ram.inMb( Runtime.getRuntime().maxMemory() ) );
+        logger.info( "heap       - max: " + Ram.inMb( Runtime.getRuntime().maxMemory() ) );
         logger.info( "heap     - allocated: " + Ram.inMb( Runtime.getRuntime().totalMemory() ) );
         logger.info( "heap     - free : " + Ram.inMb( Runtime.getRuntime().freeMemory() ) );
         logger.info( "************************************************" );

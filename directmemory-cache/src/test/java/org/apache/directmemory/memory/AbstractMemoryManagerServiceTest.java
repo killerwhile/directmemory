@@ -40,8 +40,8 @@ public abstract class AbstractMemoryManagerServiceTest
     protected static final byte[] SMALL_PAYLOAD = MemoryTestUtils.generateRandomPayload( SMALL_PAYLOAD_LENGTH );
 
 
-	protected MemoryManagerService<Object> mms;
-	
+    protected MemoryManagerService<Object> mms;
+
     protected abstract MemoryManagerService<Object> instanciateMemoryManagerService( int bufferSize );
 
 
@@ -58,7 +58,7 @@ public abstract class AbstractMemoryManagerServiceTest
         final int BUFFER_SIZE = SMALL_PAYLOAD_LENGTH + 1;
 
         mms = instanciateMemoryManagerService( BUFFER_SIZE );
-        
+
         Pointer<Object> pointer1 = mms.store( SMALL_PAYLOAD );
         Assert.assertNotNull( pointer1 );
         Assert.assertFalse( pointer1.isFree() );
@@ -82,7 +82,7 @@ public abstract class AbstractMemoryManagerServiceTest
         final int BUFFER_SIZE = NUMBER_OF_OBJECTS * SMALL_PAYLOAD_LENGTH;
 
         mms = instanciateMemoryManagerService( BUFFER_SIZE );
-        
+
         for ( int i = 0; i < NUMBER_OF_OBJECTS; i++ )
         {
             Pointer<Object> pointer = mms.store( SMALL_PAYLOAD );
@@ -106,7 +106,7 @@ public abstract class AbstractMemoryManagerServiceTest
         final int BUFFER_SIZE = NUMBER_OF_OBJECTS * SMALL_PAYLOAD_LENGTH;
 
         mms = instanciateMemoryManagerService( BUFFER_SIZE );
-        
+
         Pointer<Object> lastPointer = null;
         for ( int i = 0; i < NUMBER_OF_OBJECTS; i++ )
         {
@@ -140,7 +140,7 @@ public abstract class AbstractMemoryManagerServiceTest
         final int BUFFER_SIZE = NUMBER_OF_OBJECTS * SMALL_PAYLOAD_LENGTH;
 
         mms = instanciateMemoryManagerService( BUFFER_SIZE );
-        
+
         Pointer<Object> pointerFull = mms.store( MemoryTestUtils.generateRandomPayload( BUFFER_SIZE ) );
         Assert.assertNotNull( pointerFull );
         mms.free( pointerFull );
@@ -221,7 +221,7 @@ public abstract class AbstractMemoryManagerServiceTest
         final int BUFFER_SIZE = NUMBER_OF_OBJECTS * SMALL_PAYLOAD_LENGTH;
 
         mms = instanciateMemoryManagerService( BUFFER_SIZE );
-        
+
         for ( int i = 0; i < NUMBER_OF_OBJECTS; i++ )
         {
             byte[] payload = MemoryTestUtils.generateRandomPayload( SMALL_PAYLOAD_LENGTH );
@@ -261,7 +261,7 @@ public abstract class AbstractMemoryManagerServiceTest
         final int BUFFER_SIZE = NUMBER_OF_OBJECTS * SMALL_PAYLOAD_LENGTH;
 
         mms = instanciateMemoryManagerService( BUFFER_SIZE );
-        
+
         List<Pointer<Object>> pointers = new ArrayList<Pointer<Object>>( NUMBER_OF_OBJECTS );
         for ( int i = 0; i < NUMBER_OF_OBJECTS; i++ )
         {
@@ -322,7 +322,7 @@ public abstract class AbstractMemoryManagerServiceTest
         final int BUFFER_SIZE = NUMBER_OF_OBJECTS * SMALL_PAYLOAD_LENGTH;
 
         mms = instanciateMemoryManagerService( BUFFER_SIZE );
-        
+
         final byte[] payload = MemoryTestUtils.generateRandomPayload( SMALL_PAYLOAD_LENGTH );
 
         final Pointer<Object> pointer = mms.store( payload );
@@ -356,7 +356,7 @@ public abstract class AbstractMemoryManagerServiceTest
         final int BUFFER_SIZE = NUMBER_OF_OBJECTS * SMALL_PAYLOAD_LENGTH;
 
         mms = instanciateMemoryManagerService( BUFFER_SIZE );
-        
+
         final byte[] payload1 = MemoryTestUtils.generateRandomPayload( 8 * SMALL_PAYLOAD_LENGTH );
         final Pointer<Object> pointer1 = mms.store( payload1 );
         Assert.assertNotNull( pointer1 );

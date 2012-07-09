@@ -115,7 +115,7 @@ public class RoundRobinAllocationPolicyTest
 
         @Override
         public void free( ByteBuffer buffer )
-        {            
+        {           
         }
 
         @Override
@@ -126,7 +126,7 @@ public class RoundRobinAllocationPolicyTest
 
         @Override
         public void clear()
-        {            
+        {           
         }
 
         @Override
@@ -145,8 +145,8 @@ public class RoundRobinAllocationPolicyTest
         public void close()
             throws IOException
         {
-            
+
         }
-        
+
     }
 }

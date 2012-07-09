@@ -67,7 +67,7 @@ public class MallocTest
     }
 
     MemoryManagerService<Object> mem;
-    
+
     @Before
     public void initMMS()
     {
