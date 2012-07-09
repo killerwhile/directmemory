@@ -51,7 +51,7 @@ public class FixedSizePoolableByteBuffersFactory
     private final List<ByteBuffer> segmentsBuffers;
 
     // Collection that owns all slices that can be used.
-    private final Queue<ByteBuffer> freeBuffers = new ConcurrentLinkedQueue<ByteBuffer>();
+    private final Queue<ByteBuffer>[] freeBuffers;
 
     // Size of each slices dividing each segments of the slab
     private final int sliceSize;
@@ -93,6 +93,11 @@ public class FixedSizePoolableByteBuffersFactory
 
         long allocatedSize = 0;
 
+        freeBuffers = new Queue[Runtime.getRuntime().availableProcessors() * 2];
+        for (int i = 0; i < freeBuffers.length; i++)
+        {
+            freeBuffers[i] = new ConcurrentLinkedQueue<ByteBuffer>();
+        }
         // Create all parents segments.
         for ( int i = 0; i < numberOfSegments; i++ )
         {
@@ -107,7 +112,7 @@ public class FixedSizePoolableByteBuffersFactory
                 segment.position( j );
                 segment.limit( j + sliceSize );
                 final ByteBuffer slice = segment.slice();
-                freeBuffers.add( slice );
+                freeBuffers[bufferIndex( slice )].add( slice );
             }
 
             // set the position of the parent ByteBuffer to the end to avoid writing
@@ -122,8 +127,17 @@ public class FixedSizePoolableByteBuffersFactory
 
     protected ByteBuffer findFreeBuffer( )
     {
-        // TODO : Add capacity to wait till a given timeout for a freed buffer
-        return freeBuffers.poll();
+        int i = (int)(System.nanoTime() & 0xff) % freeBuffers.length;
+
+        for (int j = 0; j < freeBuffers.length; j++) {
+            int index = (i + j) % freeBuffers.length;
+            ByteBuffer bb = freeBuffers[index].poll();
+            if (bb != null) {
+                return bb;
+            }
+        }
+
+        return null;
     }
 
     @Override
@@ -134,10 +148,10 @@ public class FixedSizePoolableByteBuffersFactory
 
         if ( usedSliceBuffers.remove( DirectByteBufferUtils.getHash( byteBuffer ) ) == null )
         {
-            throw new IllegalStateException( "This buffer has already been freeed" );
+            throw new IllegalStateException( "This buffer has already been freeed." );
         }
 
-        freeBuffers.offer( byteBuffer );
+        freeBuffers[bufferIndex( byteBuffer )].offer( byteBuffer );
 
     }
 
@@ -207,7 +221,7 @@ public class FixedSizePoolableByteBuffersFactory
         // Re-add all borrowed buffer into the free buffer's queue.
         for ( final Map.Entry<Integer, ByteBuffer> entry : usedSliceBuffers.entrySet() )
         {
-            freeBuffers.offer( entry.getValue() );
+            freeBuffers[bufferIndex( entry.getValue() )].offer( entry.getValue() );
         }
         usedSliceBuffers.clear();
     }
@@ -255,4 +269,7 @@ public class FixedSizePoolableByteBuffersFactory
         return sliceSize;
     }
 
+    protected int bufferIndex(ByteBuffer bb) {
+        return DirectByteBufferUtils.getHash( bb ) % freeBuffers.length;
+    }
 }
