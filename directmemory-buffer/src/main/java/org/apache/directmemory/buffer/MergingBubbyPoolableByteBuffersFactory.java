@@ -158,7 +158,7 @@ public class MergingBubbyPoolableByteBuffersFactory
     }
 
     @Override
-    public void release( final ByteBuffer byteBuffer )
+    public synchronized void release( final ByteBuffer byteBuffer )
     {
 
         checkState( !isClosed() );
@@ -213,7 +213,7 @@ public class MergingBubbyPoolableByteBuffersFactory
     }
 
     @Override
-    public List<ByteBuffer> borrow( int size ) throws BufferOverflowException
+    public synchronized List<ByteBuffer> borrow( int size ) throws BufferOverflowException
     {
 
         checkState( !isClosed() );
