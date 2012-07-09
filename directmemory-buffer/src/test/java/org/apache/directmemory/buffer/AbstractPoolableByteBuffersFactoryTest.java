@@ -156,9 +156,31 @@ public abstract class AbstractPoolableByteBuffersFactoryTest {
     }
     
     
+    @Test
+    public void testSingleThreadedWriteAndRead() throws InterruptedException {
+        
+        final int SLICE_SIZE = 512;
+        final int TOTAL_SIZE = Ram.Mb( 4 );
+        final int NUM_THREADS = 4;
+        
+        
+        final PoolableByteBuffersFactory factory = getPoolableByteBuffersFactory( TOTAL_SIZE, SLICE_SIZE, NUM_THREADS );
+        final CountDownLatch latch = new CountDownLatch(1);
+        latch.countDown();
+        
+        final AtomicBoolean failure = new AtomicBoolean(false);
+        
+        
+        new WriteReadValidateRun1(factory, latch, TOTAL_SIZE / NUM_THREADS, failure);
+
+        
+        Assert.assertFalse(failure.get());
+        
+    }
+    
     
     @Test
-    public void testMT() throws InterruptedException {
+    public void testMultiThreadedWriteAndRead() throws InterruptedException {
         
         final int SLICE_SIZE = 512;
         final int TOTAL_SIZE = Ram.Mb( 4 );
@@ -172,7 +194,7 @@ public abstract class AbstractPoolableByteBuffersFactoryTest {
         final AtomicBoolean failure = new AtomicBoolean(false);
         
         for (int i = 0; i < NUM_THREADS; i++) {
-        	e.execute(new MTRun1(factory, latch, TOTAL_SIZE / NUM_THREADS, failure));
+            e.execute(new WriteReadValidateRun1(factory, latch, TOTAL_SIZE / NUM_THREADS, failure));
         }
         
         latch.countDown();
@@ -185,7 +207,7 @@ public abstract class AbstractPoolableByteBuffersFactoryTest {
         
     }
 
-    private static class MTRun1 implements Runnable {
+    private static class WriteReadValidateRun1 implements Runnable {
 
     	final PoolableByteBuffersFactory factory;
     	final CountDownLatch latch;
@@ -194,7 +216,7 @@ public abstract class AbstractPoolableByteBuffersFactoryTest {
     	
     	final Random r = new Random();
     	
-    	public MTRun1(final PoolableByteBuffersFactory factory, final CountDownLatch latch, int maxSize, final AtomicBoolean failure) {
+    	public WriteReadValidateRun1(final PoolableByteBuffersFactory factory, final CountDownLatch latch, int maxSize, final AtomicBoolean failure) {
     		this.factory = factory;
     		this.latch = latch;
     		this.maxSize = maxSize;
@@ -209,15 +231,11 @@ public abstract class AbstractPoolableByteBuffersFactoryTest {
 				// synchronize the run to achieve more concurrency
 				latch.await();
 				
-				for (int n = 0; n < 10; n++) {
+				for (int n = 0; n < 100; n++) {
 					byte[] b = new byte[r.nextInt(maxSize)];
 					r.nextBytes(b);
 					
 					List<ByteBuffer> bbs = factory.borrow(b.length);
-
-//					for (ByteBuffer bb : bbs) {
-//						System.out.println("borrow " + DirectByteBufferUtils.getHash(bb));
-//					}
 					
 					write(bbs, b);
 					
@@ -228,7 +246,7 @@ public abstract class AbstractPoolableByteBuffersFactoryTest {
 					for (int i = 0; i < b.length; i++) {
 						if (b[i] != read[i])
 						{
-							System.out.println("error at index " + i + " in byteBuffer");
+							System.err.println("error at index " + i + " in byteBuffer");
 							failure.set(true);
 							break;
 						}
@@ -236,7 +254,6 @@ public abstract class AbstractPoolableByteBuffersFactoryTest {
 					
 					for (ByteBuffer bb : bbs) {
 						factory.release(bb);
-//						System.out.println("release " + DirectByteBufferUtils.getHash(bb));
 					}
 				}
 				

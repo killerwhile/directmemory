@@ -158,18 +158,23 @@ public class MergingBubbyPoolableByteBuffersFactory
     }
 
     @Override
-    public synchronized void release( final ByteBuffer byteBuffer )
+    public void release( final ByteBuffer byteBuffer )
     {
 
         checkState( !isClosed() );
 
         LinkedByteBuffer linkedByteBuffer = borrowedBuffers.remove( DirectByteBufferUtils.getHash( byteBuffer ) );
-            
-        if ( linkedByteBuffer == null )
+        
+        if ( linkedByteBuffer == null)
         {
-            throw new IllegalStateException( "This buffer has already been freeed" );
+            throw new IllegalStateException( "This buffer has already been freeed." );
         }
-
+        
+        if ( linkedByteBuffer.byteBuffer != byteBuffer)
+        {
+            throw new IllegalStateException( "Hu ? This buffer does not match anything." );
+        }
+        
         merge(linkedByteBuffer);
     }
     
@@ -198,7 +203,7 @@ public class MergingBubbyPoolableByteBuffersFactory
     }
 
     @Override
-    public synchronized List<ByteBuffer> borrow( int size ) throws BufferOverflowException
+    public List<ByteBuffer> borrow( int size ) throws BufferOverflowException
     {
 
         checkState( !isClosed() );
@@ -268,9 +273,7 @@ public class MergingBubbyPoolableByteBuffersFactory
                 }
                 throw new BufferOverflowException();
             }
-            
-            buffer.free.set(false);
-            
+                        
             int bufferLimit = Math.min(buffer.byteBuffer.capacity(), sizeToTryToAllocate);
             
             // Reset buffer's state
@@ -281,7 +284,7 @@ public class MergingBubbyPoolableByteBuffersFactory
             
             byteBuffers.add(buffer.byteBuffer);
             
-            allocatedSize += buffer.byteBuffer.capacity();
+            allocatedSize += buffer.byteBuffer.limit();
         
         } while (allocatedSize < size);
         
@@ -305,7 +308,10 @@ public class MergingBubbyPoolableByteBuffersFactory
         
         ByteBuffer b2 = parentByteBuffer.byteBuffer.slice();
 
-        LinkedByteBuffer lb1 = new LinkedByteBuffer( parentByteBuffer.level + 1, b1 );
+        // lb1 will be returned or split again, it must be marked as in use.
+        LinkedByteBuffer lb1 = new LinkedByteBuffer( parentByteBuffer.level + 1, b1, false );
+        
+        // lb2 is offered to the pool of free buffers.
         LinkedByteBuffer lb2 = new LinkedByteBuffer( parentByteBuffer.level + 1, b2 );
         
         lb1.bubby = lb2;
@@ -382,12 +388,18 @@ public class MergingBubbyPoolableByteBuffersFactory
         private final int level;
         private LinkedByteBuffer bubby;
         private LinkedByteBuffer parent;
-        private final AtomicBoolean free = new AtomicBoolean(true);
+        private final AtomicBoolean free;
         
-        LinkedByteBuffer(int level, ByteBuffer byteBuffer) {
+        LinkedByteBuffer(int level, ByteBuffer byteBuffer, boolean free) {
             this.level = level;
             this.byteBuffer = byteBuffer;
+            this.free = new AtomicBoolean(free);
         }
+        
+        LinkedByteBuffer(int level, ByteBuffer byteBuffer) {
+            this(level, byteBuffer, true);
+        }
+        
     }
     
     /**
